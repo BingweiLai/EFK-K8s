@@ -23,14 +23,14 @@ spec:
             requests:
               cpu: 100m
           ports:
-            - containerPort: 9200
+            - containerPort: 9200 
               name: rest
               protocol: TCP
             - containerPort: 9300
               name: inter-node
               protocol: TCP
-          volumeMounts:
-            - mountPath: /usr/share/elasticsearch/data
+          volumeMounts: # 掛載
+            - mountPath: /usr/share/elasticsearch/data # 路徑
               name: data
           env:
             - name: cluster.name
@@ -38,30 +38,32 @@ spec:
             - name: node.name
               valueFrom:
                 fieldRef:
-                  fieldPath: metadata.name
-            - name: discovery.seed_hosts
+                  fieldPath: metadata.name # 它會解析為 es-cluster-[0,1,2]，取決節點的指定順序
+            - name: discovery.seed_hosts # 設置叢集中主節點列表
               value: "es-cluster-0.elasticsearch,es-cluster-1.elasticsearch,es-cluster-2.elasticsearch"
-            - name: cluster.initial_master_nodes
+            - name: cluster.initial_master_nodes # 這邊指定將參與主節點的選舉過程節點列表
               value: "es-cluster-0,es-cluster-1,es-cluster-2"
             - name: ES_JAVA_OPTS
-              value: "-Xms512m -Xmx512m"
+              value: "-Xms512m -Xmx512m" # 告訴 JVM 使用最大跟最小 512 MB，可以依據資源來做調配
             - name: xpack.security.enabled # 記得要加上，因爲 Elasticsearch 8.x版本後會自動開啟SSL，如果沒有設定他就會一直重新啟動
               value: "false"
       initContainers:
       - name: fix-permissions
         image: busybox
-        command: ["sh", "-c", "chown -R 1000:1000 /usr/share/elasticsearch/data"]
+        command: ["sh", "-c", "chown -R 1000:1000 /usr/share/elasticsearch/data"] # 因為默認情況下，Kubernetes 會將數據目錄掛載為 root
+        # 導致 Elasticsearch 無法訪問
+        # 所以才會多這個運行 chown 將 Elasticsearch 數據目錄的所有者和組更改為 1000:1000 /usr/share/elasticsearch/data
         securityContext:
           privileged: true
         volumeMounts:
           - name: data
             mountPath: /usr/share/elasticsearch/data
-      - name: increase-vm-max-map
+      - name: increase-vm-max-map # 用 sysctl -w 來調整內存大小
         image: busybox
         command: ["sysctl", "-w", "vm.max_map_count=262144"]
         securityContext:
           privileged: true
-      - name: increase-fd-ulimit
+      - name: increase-fd-ulimit # 調整打開文件描述的最大數量
         image: busybox
         command: ["sh", "-c", "ulimit -n 65536"]
         securityContext:

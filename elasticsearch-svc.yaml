@@ -8,9 +8,9 @@ metadata:
 spec:
   selector:
     app: elasticsearch
-  clusterIP: None
+  clusterIP: None # Headless Service
   ports:
-    - port: 9200
+    - port: 9200 # Rest API通信
       name: rest
-    - port: 9300
+    - port: 9300 # Node 之間通信
       name: inter-node

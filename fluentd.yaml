@@ -1,7 +1,7 @@
 apiVersion: v1
-kind: ServiceAccount
+kind: ServiceAccount 
 metadata:
-  name: fluentd
+  name: fluentd # Fluentd Pod 將使用它來訪問 Kubernetes API
   namespace: kube-logging
   labels:
     app: fluentd
@@ -18,12 +18,12 @@ rules:
     resources:
       - pods
       - namespaces
-    verbs:
+    verbs: # 對叢集範圍的 Kubernetes 資源（如節點）的訪問權限
       - get
       - list
       - watch
 ---
-kind: ClusterRoleBinding
+kind: ClusterRoleBinding # 將 ClusterRole 綁定到 ServiceAccount 的 ClusterRoleBinding 調用
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: fluentd
@@ -56,14 +56,15 @@ spec:
       serviceAccountName: fluentd
       tolerations:
         - key: node-role.kubernetes.io/master
-          effect: NoSchedule
+          effect: NoSchedule # 定義 NoSchedule 容忍度來匹配 Kubernetes master node 上的等效污點
+          # 他可以確保 DaemonSet 也被部署到 Kubernetes 主服務器
       containers:
         - name: fluentd
           image: fluent/fluentd-kubernetes-daemonset:v1.14.6-debian-elasticsearch7-1.0
           env:
-            - name: FLUENT_ELASTICSEARCH_HOST
+            - name: FLUENT_ELASTICSEARCH_HOST #  Elasticsearch Headless 位址
               value: "elasticsearch.kube-logging.svc.cluster.local"
-            - name: FLUENT_ELASTICSEARCH_PORT
+            - name: FLUENT_ELASTICSEARCH_PORT #  Elasticsearch Pod 的 IP 地址列表
               value: "9200"
             - name: FLUENT_ELASTICSEARCH_SCHEME
               value: "http"
@@ -81,7 +82,7 @@ spec:
             - name: varlibdockercontainers
               mountPath: /var/lib/docker/containers
               readOnly: true
-      terminationGracePeriodSeconds: 30
+      terminationGracePeriodSeconds: 30 # 30秒時間可以優雅的關閉
       volumes:
       - name: varlog
         hostPath:

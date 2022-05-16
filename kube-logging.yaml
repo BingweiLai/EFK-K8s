@@ -1,4 +1,4 @@
-kind: Namespace
+kind: Namespace # 創建一個空間
 apiVersion: v1
 metadata:
   name: kube-logging
